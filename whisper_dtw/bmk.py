@@ -59,6 +59,7 @@ def run(args: argparse.Namespace):
         offset = 0
         while offset < mel.shape[-1]:
             mel_segment = mel[:, offset : offset + N_FRAMES]
+            actual_n_frames = mel_segment.shape[-1]
             offset += N_FRAMES
             mel_segment = whisper.pad_or_trim(mel_segment, N_FRAMES).to("cuda").to(torch.float16)
             mel_segment = mel_segment.unsqueeze(0).repeat(batch_size, 1, 1)
@@ -75,6 +76,34 @@ def run(args: argparse.Namespace):
                 generator.compute_logits()
                 generator.generate_next_token()
                 # print('generator.get_output("logits"):', generator.get_output("logits"))
+
+            cross_qk = generator.get_output("cross_qk")
+            print(f"cross_qk: shape={cross_qk.shape}")  # (batch_size, beam_size, n, token_length, num_frames)
+
+            def find_alignment(cross_qk: np.ndarray, actual_n_frames: int):
+                from whisper.timing import median_filter, dtw
+
+                qk = torch.tensor(cross_qk).to("cuda")
+                qk = qk[:5, :, : actual_n_frames // 2]
+                print(f"qk: shape={qk.shape}")
+                qk = qk.softmax(dim=-1)
+                std, mean = torch.std_mean(qk, dim=-2, keepdim=True, unbiased=False)
+                qk = (qk - mean) / std
+                qk = median_filter(qk, filter_width=7)
+                matrix = qk.mean(axis=0)
+                len_sot = 4
+                matrix = matrix[len_sot:-1]
+                print(f"matrix: {matrix}")
+
+                text_indices, time_indices = dtw(-matrix)
+                print("text_indices:", ", ".join(map(str, text_indices)))
+                print("time_indices:", ", ".join(map(str, time_indices)))
+                print(f"len_text_indices={len(text_indices)}, len_time_indices={len(time_indices)}")
+
+            batch_size = cross_qk.shape[0]
+            for b in range(batch_size):
+                cross_qk_b = cross_qk[b, 0, :, :, :].squeeze()
+                find_alignment(cross_qk_b, actual_n_frames)
 
             print()
             for i in range(batch_size * args.num_beams):
