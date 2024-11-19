@@ -84,7 +84,7 @@ def run(args: argparse.Namespace):
                 from whisper.timing import median_filter, dtw
 
                 qk = torch.tensor(cross_qk).to("cuda")
-                qk = qk[:5, :, : actual_n_frames // 2]
+                qk = qk[:, :, : actual_n_frames // 2]
                 print(f"qk: shape={qk.shape}")
                 qk = qk.softmax(dim=-1)
                 std, mean = torch.std_mean(qk, dim=-2, keepdim=True, unbiased=False)
@@ -99,6 +99,8 @@ def run(args: argparse.Namespace):
                 print("text_indices:", ", ".join(map(str, text_indices)))
                 print("time_indices:", ", ".join(map(str, time_indices)))
                 print(f"len_text_indices={len(text_indices)}, len_time_indices={len(time_indices)}")
+
+                # TODO: Construct the word-level alignment with time
 
             batch_size = cross_qk.shape[0]
             for b in range(batch_size):
