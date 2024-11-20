@@ -4,6 +4,7 @@ import whisper
 model = whisper.load_model("tiny")
 
 audio_path = "audio_teapot.mp3"
+audio_path = "1272-141231-0002.mp3"
 
 # Transcribe audio with timestamps
 for i in range(1):

@@ -11,7 +11,7 @@ import numpy as np
 
 import torch
 import whisper
-from whisper.audio import N_FRAMES, log_mel_spectrogram
+from whisper.audio import N_FRAMES, TOKENS_PER_SECOND, log_mel_spectrogram
 
 # og.set_log_options(enabled=True, model_input_values=True)
 
@@ -39,6 +39,7 @@ def run(args: argparse.Namespace):
         readline.parse_and_bind("tab: complete")
         readline.set_completer(_complete)
         audio_paths = ["audio_teapot.mp3"]
+        # audio_paths = ["1272-141231-0002.mp3"]
 
         audio = whisper.load_audio(audio_paths[0])
         mel = log_mel_spectrogram(audio, 80, padding=0)
@@ -80,7 +81,7 @@ def run(args: argparse.Namespace):
             cross_qk = generator.get_output("cross_qk")
             print(f"cross_qk: shape={cross_qk.shape}")  # (batch_size, beam_size, n, token_length, num_frames)
 
-            def find_alignment(cross_qk: np.ndarray, actual_n_frames: int):
+            def find_alignment(cross_qk: np.ndarray, actual_n_frames: int, text_tokens: list):
                 from whisper.timing import median_filter, dtw
 
                 qk = torch.tensor(cross_qk).to("cuda")
@@ -91,7 +92,7 @@ def run(args: argparse.Namespace):
                 qk = (qk - mean) / std
                 qk = median_filter(qk, filter_width=7)
                 matrix = qk.mean(axis=0)
-                len_sot = 4
+                len_sot = 3
                 matrix = matrix[len_sot:-1]
                 print(f"matrix: {matrix}")
 
@@ -100,12 +101,43 @@ def run(args: argparse.Namespace):
                 print("time_indices:", ", ".join(map(str, time_indices)))
                 print(f"len_text_indices={len(text_indices)}, len_time_indices={len(time_indices)}")
 
-                # TODO: Construct the word-level alignment with time
+                tokens = text_tokens[len_sot:-1]
+                texts = list(map(lambda x: processor.decode(x), tokens))
+                print("texts:", len(texts), texts)
+
+                start_end_frames = []
+                for i, idx in enumerate(text_indices):
+                    if len(start_end_frames) == idx:
+                        start_end_frames.append([i, i])
+                    else:
+                        start_end_frames[idx][1] = i
+                print("start_end_frames:", len(start_end_frames), start_end_frames)
+
+                valid_texts = texts[1:]
+                valid_start_end_frames = start_end_frames[1:]
+                words = []
+                word_timestamps = []
+                for i, text in enumerate(valid_texts):
+                    start, end = valid_start_end_frames[i]
+                    start, end = time_indices[start], time_indices[end]
+                    start, end = start / TOKENS_PER_SECOND, end / TOKENS_PER_SECOND
+                    if text.startswith(" "):
+                        words.append(text.strip())
+                        word_timestamps.append([start, end])
+                    else:
+                        words[-1] += text
+                        word_timestamps[-1][1] = end
+
+                print("Word timestamps:")
+                for word, (start, end) in zip(words, word_timestamps):
+                    print(f"    {start:.2f}\t{end:.2f}\t{word}")
 
             batch_size = cross_qk.shape[0]
             for b in range(batch_size):
                 cross_qk_b = cross_qk[b, 0, :, :, :].squeeze()
-                find_alignment(cross_qk_b, actual_n_frames)
+                # Pick the first beam for each batch
+                tokens = generator.get_sequence(b * args.num_beams)
+                find_alignment(cross_qk_b, actual_n_frames, tokens)
 
             print()
             for i in range(batch_size * args.num_beams):
