@@ -58,6 +58,7 @@ def run(args: argparse.Namespace):
         )
 
         offset = 0
+        # In this loop, long audio is processed in segments each with N_FRAMES frames except the last one.
         while offset < mel.shape[-1]:
             mel_segment = mel[:, offset : offset + N_FRAMES]
             actual_n_frames = mel_segment.shape[-1]
@@ -67,9 +68,7 @@ def run(args: argparse.Namespace):
 
             params.audio_features = np.ascontiguousarray(mel_segment.cpu().numpy().astype(np.float16))
             params.input_ids = [[tokenizer.to_token_id(token) for token in decoder_prompt_tokens]] * batch_size
-            params.alignment_heads = np.ascontiguousarray(
-                np.array([[2, 2], [3, 0], [3, 2], [3, 3], [3, 4], [3, 5]]).astype(np.int32)
-            )
+            params.alignment_heads = np.array([[2, 2], [3, 0], [3, 2], [3, 3], [3, 4], [3, 5]]).astype(np.int32)
 
             generator = og.Generator(model, params)
 
@@ -93,7 +92,7 @@ def run(args: argparse.Namespace):
                 qk = median_filter(qk, filter_width=7)
                 matrix = qk.mean(axis=0)
                 len_sot = 3
-                matrix = matrix[len_sot:-1]
+                matrix = matrix[len_sot:]
                 print(f"matrix: {matrix}")
 
                 text_indices, time_indices = dtw(-matrix)
@@ -101,7 +100,7 @@ def run(args: argparse.Namespace):
                 print("time_indices:", ", ".join(map(str, time_indices)))
                 print(f"len_text_indices={len(text_indices)}, len_time_indices={len(time_indices)}")
 
-                tokens = text_tokens[len_sot:-1]
+                tokens = text_tokens[len_sot:]
                 texts = list(map(lambda x: processor.decode(x), tokens))
                 print("texts:", len(texts), texts)
 
@@ -113,8 +112,8 @@ def run(args: argparse.Namespace):
                         start_end_frames[idx][1] = i
                 print("start_end_frames:", len(start_end_frames), start_end_frames)
 
-                valid_texts = texts[1:]
-                valid_start_end_frames = start_end_frames[1:]
+                valid_texts = texts[1:len(start_end_frames)]
+                valid_start_end_frames = start_end_frames
                 words = []
                 word_timestamps = []
                 for i, text in enumerate(valid_texts):
@@ -134,7 +133,7 @@ def run(args: argparse.Namespace):
 
             batch_size = cross_qk.shape[0]
             for b in range(batch_size):
-                cross_qk_b = cross_qk[b, 0, :, :, :].squeeze()
+                cross_qk_b = cross_qk[b][0]
                 # Pick the first beam for each batch
                 tokens = generator.get_sequence(b * args.num_beams)
                 find_alignment(cross_qk_b, actual_n_frames, tokens)
