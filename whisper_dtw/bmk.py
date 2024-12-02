@@ -3,14 +3,14 @@
 
 import argparse
 import glob
-
+import nvtx
 import readline
-
-import onnxruntime_genai as og
-import numpy as np
-
 import torch
 import whisper
+
+import numpy as np
+import onnxruntime_genai as og
+
 from whisper.audio import N_FRAMES, TOKENS_PER_SECOND, log_mel_spectrogram
 
 # og.set_log_options(enabled=True, model_input_values=True)
@@ -44,7 +44,7 @@ def run(args: argparse.Namespace):
         audio = whisper.load_audio(audio_paths[0])
         mel = log_mel_spectrogram(audio, 80, padding=0)
 
-        batch_size = 1
+        batch_size = args.batch_size
         print("mel:", mel.shape)
         decoder_prompt_tokens = ["<|startoftranscript|>", "<|en|>", "<|transcribe|>", "<|notimestamps|>"]
 
@@ -72,13 +72,28 @@ def run(args: argparse.Namespace):
 
             generator = og.Generator(model, params)
 
+            if args.profile:
+                nvtx.push_range("generate", color="blue")
+                step = 0
             while not generator.is_done():
+                if args.profile:
+                    nvtx.push_range(f"single_step_{step}", color="green")
+                    nvtx.push_range("compute_logits", color="yellow")
                 generator.compute_logits()
+                if args.profile:
+                    nvtx.pop_range()
+                    nvtx.push_range("generate_next_token", color="orange")
                 generator.generate_next_token()
+                if args.profile:
+                    nvtx.pop_range()
+                    nvtx.pop_range()
+                    step += 1
                 # print('generator.get_output("logits"):', generator.get_output("logits"))
-
-            cross_qk = generator.get_output("cross_qk")
-            print(f"cross_qk: shape={cross_qk.shape}")  # (batch_size, beam_size, n, token_length, num_frames)
+            if args.profile:
+                nvtx.pop_range()
+            else:
+                cross_qk = generator.get_output("cross_qk")
+                print(f"cross_qk: shape={cross_qk.shape}")  # (batch_size, beam_size, n, token_length, num_frames)
 
             def find_alignment(cross_qk: np.ndarray, actual_n_frames: int, text_tokens: list):
                 from whisper.timing import median_filter, dtw
@@ -112,7 +127,7 @@ def run(args: argparse.Namespace):
                         start_end_frames[idx][1] = i
                 print("start_end_frames:", len(start_end_frames), start_end_frames)
 
-                valid_texts = texts[1:len(start_end_frames)]
+                valid_texts = texts[1 : len(start_end_frames)]
                 valid_start_end_frames = start_end_frames
                 words = []
                 word_timestamps = []
@@ -131,12 +146,29 @@ def run(args: argparse.Namespace):
                 for word, (start, end) in zip(words, word_timestamps):
                     print(f"    {start:.2f}\t{end:.2f}\t{word}")
 
-            batch_size = cross_qk.shape[0]
-            for b in range(batch_size):
-                cross_qk_b = cross_qk[b][0]
-                # Pick the first beam for each batch
-                tokens = generator.get_sequence(b * args.num_beams)
-                find_alignment(cross_qk_b, actual_n_frames, tokens)
+            if args.profile:
+                print("Running additional step to get cross_qk")
+                tokens = generator.get_sequence(0)
+                new_params = og.GeneratorParams(model)
+                new_params.set_search_options(
+                    do_sample=False, num_beams=1, num_return_sequences=1, min_length=0, max_length=448
+                )
+                new_params.audio_features = np.ascontiguousarray(mel_segment.cpu().numpy().astype(np.float16))
+                new_params.input_ids = [tokens] * batch_size
+
+                new_generator = og.Generator(model, new_params)
+                # Run only a single step
+                nvtx.push_range("cross_qk", color="red")
+                new_generator.compute_logits()
+                new_generator.generate_next_token()
+                nvtx.pop_range()
+            else:
+                batch_size = cross_qk.shape[0]
+                for b in range(batch_size):
+                    cross_qk_b = cross_qk[b][0]
+                    # Pick the first beam for each batch
+                    tokens = generator.get_sequence(b * args.num_beams)
+                    find_alignment(cross_qk_b, actual_n_frames, tokens)
 
             print()
             for i in range(batch_size * args.num_beams):
@@ -167,6 +199,14 @@ if __name__ == "__main__":
         default="whisper_new_export/wtiny-fp16",
         help="Path to the model",
     )
-    parser.add_argument("-b", "--num_beams", type=int, default=1, help="Number of beams")
+    parser.add_argument("-b", "--num_beams", type=int, default=4, help="Number of beams")
+    parser.add_argument("-B", "--batch_size", type=int, default=3, help="Batch size")
+    parser.add_argument("-p", "--profile", action="store_true", help="Enable profiling")
     args = parser.parse_args()
-    run(args)
+
+    for i in range(5 if args.profile else 1):
+        if args.profile:
+            nvtx.push_range(f"run_{i}", color="red")
+        run(args)
+        if args.profile:
+            nvtx.pop_range()
