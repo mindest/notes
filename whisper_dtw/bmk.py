@@ -38,8 +38,9 @@ def run(args: argparse.Namespace):
         readline.set_completer_delims(" \t\n;")
         readline.parse_and_bind("tab: complete")
         readline.set_completer(_complete)
-        audio_paths = ["audio_teapot.mp3"]
-        # audio_paths = ["1272-141231-0002.mp3"]
+
+        audio_path = args.audio_path or "audios/1.flac"
+        audio_paths = [audio_path]
 
         audio = whisper.load_audio(audio_paths[0])
         mel = log_mel_spectrogram(audio, 80, padding=0)
@@ -199,9 +200,10 @@ if __name__ == "__main__":
         default="whisper_new_export/wtiny-fp16",
         help="Path to the model",
     )
-    parser.add_argument("-b", "--num_beams", type=int, default=4, help="Number of beams")
     parser.add_argument("-B", "--batch_size", type=int, default=3, help="Batch size")
+    parser.add_argument("-b", "--beam_size", type=int, default=4, help="Number of beams")
     parser.add_argument("-p", "--profile", action="store_true", help="Enable profiling")
+    parser.add_argument("-a", "--audio_path", type=str, default=None, help="Path to the audio file")
     args = parser.parse_args()
 
     for i in range(5 if args.profile else 1):
