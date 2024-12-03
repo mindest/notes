@@ -9,7 +9,8 @@ args = parser.parse_args()
 # Load the model
 model = whisper.load_model("tiny")
 
-audio_path = "audio_teapot.mp3"
+# audio_path = "audios/audio_teapot.mp3"
+audio_path = "audios/1272-141231-0002.mp3"
 
 audio_path = args.audio_path or audio_path
 

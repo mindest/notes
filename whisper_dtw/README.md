@@ -17,7 +17,7 @@ Obtained from
 bash diff_outputs.sh <path/to/audio>
 ```
 
-- On audio [audio_teapot.mp3](audio_teapot.mp3):
+- On audio [audio_teapot.mp3](audios/audio_teapot.mp3):
 
   <details>
     <summary> Word-level timestamps diff </summary>
@@ -115,7 +115,7 @@ bash diff_outputs.sh <path/to/audio>
   ```
   </details>
 
-- On audio [1272-141231-0002.mp3](1272-141231-0002.mp3):
+- On audio [1272-141231-0002.mp3](audios/1272-141231-0002.mp3):
 
   Word-level timestamps diff:
 
@@ -163,7 +163,7 @@ Word-level timestamps
 
 The timestamps of words for ORT look later than the reference, which needs further investigation.
 
-- On audio [audio_teapot.mp3](audio_teapot.mp3):
+- On audio [audio_teapot.mp3](audios/audio_teapot.mp3):
   - reference ([ref.py](ref.py)):
 
     <details>
@@ -318,7 +318,7 @@ The timestamps of words for ORT look later than the reference, which needs furth
     ```
     </details>
 
-- On audio [1272-141231-0002.mp3](1272-141231-0002.mp3):
+- On audio [1272-141231-0002.mp3](audios/1272-141231-0002.mp3):
   - reference:
 
     <details>
