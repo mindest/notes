@@ -94,7 +94,7 @@ def run(args: argparse.Namespace):
                 nvtx.pop_range()
             else:
                 cross_qk = generator.get_output("cross_qk")
-                print(f"cross_qk: shape={cross_qk.shape}")  # (batch_size, beam_size, n, token_length, num_frames)
+                print(f"cross_qk: shape={cross_qk.shape}")  # (batch_size, num_beams, n, token_length, num_frames)
 
             def find_alignment(cross_qk: np.ndarray, actual_n_frames: int, text_tokens: list):
                 from whisper.timing import median_filter, dtw
@@ -143,9 +143,15 @@ def run(args: argparse.Namespace):
                         words[-1] += text
                         word_timestamps[-1][1] = end
 
-                print("Word timestamps:")
+                print("Word-level timestamps:")
+                header = "start\tend\tword\n-----\t---\t----"
+                f = open("output_ort.txt", "w")
+                f.write(header + "\n")
                 for word, (start, end) in zip(words, word_timestamps):
-                    print(f"    {start:.2f}\t{end:.2f}\t{word}")
+                    line = f"{start:.2f}\t{end:.2f}\t{word}"
+                    print(line)
+                    f.write(line + "\n")
+                f.close()
 
             if args.profile:
                 print("Running additional step to get cross_qk")
@@ -200,8 +206,8 @@ if __name__ == "__main__":
         default="whisper_new_export/wtiny-fp16",
         help="Path to the model",
     )
-    parser.add_argument("-B", "--batch_size", type=int, default=3, help="Batch size")
-    parser.add_argument("-b", "--beam_size", type=int, default=4, help="Number of beams")
+    parser.add_argument("-b", "--batch_size", type=int, default=3, help="Batch size")
+    parser.add_argument("-n", "--num_beams", type=int, default=4, help="Number of beams")
     parser.add_argument("-p", "--profile", action="store_true", help="Enable profiling")
     parser.add_argument("-a", "--audio_path", type=str, default=None, help="Path to the audio file")
     args = parser.parse_args()
