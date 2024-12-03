@@ -42,13 +42,16 @@ def transcribe_bmk(audio_path, batch_size=3, beam_size=4):
 if __name__ == "__main__":
     import os
     idx = os.environ.get("FILE_INDEX", "1")
-    audio_path = f"/linmin/concat_audios/{idx}.flac"
+    audio_path = f"concat_audios/{idx}.flac"
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("-B", "--batch_size", type=int, default=3, help="Batch size")
     parser.add_argument("-b", "--beam_size", type=int, default=4, help="Beam size")
     parser.add_argument("-p", "--profile", action="store_true", help="Enable profiling")
+    parser.add_argument("-a", "--audio_path", type=str, default=None, help="Path to the audio file")
     args = parser.parse_args()
+
+    audio_path = args.audio_path or audio_path
 
     for i in range(5 if args.profile else 1):
         with nvtx.annotate(f"transcribe_{i}", color="red"):
