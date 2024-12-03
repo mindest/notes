@@ -153,6 +153,53 @@ def run(args: argparse.Namespace):
                     f.write(line + "\n")
                 f.close()
 
+            def whisper_find_alignment(cross_qk: np.ndarray, actual_n_frames: int, tokens: list):
+                from whisper.timing import median_filter, dtw, WordTiming, merge_punctuations
+                from whisper.tokenizer import get_tokenizer
+
+                qk = torch.tensor(cross_qk).to("cuda")
+                qk = qk[:, :, : actual_n_frames // 2]
+                qk = qk.softmax(dim=-1)
+                std, mean = torch.std_mean(qk, dim=-2, keepdim=True, unbiased=False)
+                qk = (qk - mean) / std
+                qk = median_filter(qk, filter_width=7)
+                matrix = qk.mean(axis=0)
+                len_sot = 3
+                matrix = matrix[len_sot:]
+
+                text_indices, time_indices = dtw(-matrix)
+                whisper_tokenizer = get_tokenizer(True, num_languages=99, language="en", task="transcribe")
+
+                if not isinstance(tokens, list):
+                    tokens = tokens.tolist()
+                text_tokens = [t for t in tokens if t < whisper_tokenizer.eot]
+
+                words, word_tokens = whisper_tokenizer.split_to_word_tokens(text_tokens + [whisper_tokenizer.eot])
+                word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens[:-1]]), (1, 0))
+
+                jumps = np.pad(np.diff(text_indices), (1, 0), constant_values=1).astype(bool)
+                jump_times = time_indices[jumps] / TOKENS_PER_SECOND
+                start_times = jump_times[word_boundaries[:-1]]
+                end_times = jump_times[word_boundaries[1:]]
+                print(len(start_times), len(end_times), len(words))
+                alignment = [
+                    WordTiming(word, word_tokens, start, end, 0.0)
+                    for word, start, end in zip(words, start_times, end_times)
+                ]
+                prepend_punctuations = "\"'“¿([{-"
+                append_punctuations = "\"'.。,，!！?？:：”)]}、"
+                merge_punctuations(alignment, prepend_punctuations, append_punctuations)
+                print("Word-level timestamps:")
+                header = "start\tend\tword\n-----\t---\t----"
+                f = open("output_ort.txt", "w")
+                f.write(header + "\n")
+                for word in alignment:
+                    if word.word == "":
+                        continue
+                    line = f"{word.start:.2f}\t{word.end:.2f}\t{word.word.strip()}"
+                    print(line)
+                    f.write(line + "\n")
+
             if args.profile:
                 print("Running additional step to get cross_qk")
                 tokens = generator.get_sequence(0)
@@ -175,7 +222,7 @@ def run(args: argparse.Namespace):
                     cross_qk_b = cross_qk[b][0]
                     # Pick the first beam for each batch
                     tokens = generator.get_sequence(b * args.num_beams)
-                    find_alignment(cross_qk_b, actual_n_frames, tokens)
+                    whisper_find_alignment(cross_qk_b, actual_n_frames, tokens)
 
             print()
             for i in range(batch_size * args.num_beams):
