@@ -123,6 +123,21 @@ def whisper_find_alignment(cross_qk: np.ndarray, actual_n_frames: int, tokens: l
     prepend_punctuations = "\"'“¿([{-"
     append_punctuations = "\"'.。,，!！?？:：”)]}、"
     merge_punctuations(alignment, prepend_punctuations, append_punctuations)
+
+    word_durations = np.array([t.end - t.start for t in alignment])
+    word_durations = word_durations[word_durations.nonzero()]
+    median_duration = np.median(word_durations) if len(word_durations) > 0 else 0.0
+    median_duration = min(0.7, float(median_duration))
+    max_duration = median_duration * 2
+
+    alignment = [t for t in alignment if t.word != ""]  # Remove empty words, strip leading/trailing spaces
+    if len(alignment) > 0:
+        if alignment[0].end - alignment[0].start > max_duration or (len(alignment) > 1 and alignment[1].end - alignment[0].start > max_duration * 2):
+            if len(alignment) > 1 and alignment[1].end - alignment[1].start > max_duration:
+                boundary = max(alignment[1].end / 2, alignment[1].end - max_duration)
+                alignment[0].end = alignment[1].start = boundary
+            alignment[0].start = max(0, alignment[0].end - max_duration)
+
     print("Word-level timestamps:")
     header = "start\tend\tword\n-----\t---\t----"
     f = open("output_ort.txt", "w")
