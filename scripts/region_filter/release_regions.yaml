@@ -1,0 +1,241 @@
+- stage: Canary
+  regions:
+  - name: CanaryUSC
+    clusters:
+    - name: speech1b-a10-uscx
+      config: speech1b-ame-centraluseuap-v10
+      type: batch
+  - name: CanaryUSE2
+    clusters:
+    - name: speech1b-a10-use2x
+      config: speech1b-ame-eastus2euap-v10
+      type: batch
+- stage: Stage1
+  regions:
+  - name: WestCentralUS
+    clusters:
+    - name: speech1b-a10-uswc
+      config: speech1b-ame-westcentralus-v10
+      type: batch
+- stage: Stage2
+  regions:
+  - name: EastAsia
+    clusters:
+    - name: speech1b-a10-ae
+      config: speech1b-ame-eastasia-v10
+      type: batch
+- stage: Stage3
+  regions:
+  - name: NorthEurope
+    clusters:
+    - name: speech1b-a10-neu
+      config: speech1b-ame-northeurope-v10
+      type: batch
+- stage: Stage4_0
+  regions:
+  - name: AustraliaEast
+    clusters:
+    - name: speech1b-a10-aue
+      config: speech1b-ame-australiaeast-v10
+      type: batch
+  - name: BrazilSouth
+    clusters:
+    - name: speech1b-a10-brs
+      config: speech1b-ame-brazilsouth-v10
+      type: batch
+  - name: CentralIndia
+    clusters:
+    - name: speech1b-a10-inc
+      config: speech1b-ame-centralindia-v10
+      type: batch+aoaiwhisper
+  - name: EastUS2
+    clusters:
+    - name: speech1b-a10-use2
+      config: speech1b-ame-eastus2-v10
+      type: batch+aoaiwhisper
+  - name: SwitzerlandWest
+    clusters:
+    - name: speech1b-a10-sww
+      config: speech1b-ame-switzerlandwest-v10
+      type: batch
+- stage: Stage4_1
+  regions:
+  - name: FranceCentral
+    clusters:
+    - name: speech1b-a10-fc
+      config: speech1b-ame-francecentral-v10
+      type: batch
+  - name: JapanWest
+    clusters:
+    - name: speech1b-a10-jpw
+      config: speech1b-ame-japanwest-v10
+      type: batch
+  - name: NorthCentralUS
+    clusters:
+    - name: speech1b-a10-usnc
+      config: speech1b-ame-northcentralus-v10
+      type: batch+aoaiwhisper+aoaitts
+  - name: UKSouth
+    clusters:
+    - name: speech1b-a10-uks
+      config: speech1b-ame-uksouth-v10
+      type: batch
+  - name: UAENorth
+    clusters:
+    - name: speech1b-a10-uaen
+      config: speech1b-ame-uaenorth-v10
+      type: batch+aoaiwhisper
+- stage: Stage4_2
+  regions:
+  - name: WestEurope
+    clusters:
+    - name: speech1b-a10-weu
+      config: speech1b-ame-westeurope-v10
+      type: batch+aoaiwhisper
+  - name: WestUS
+    clusters:
+    - name: speech1b-a10-usw
+      config: speech1b-ame-westus-v10
+      type: batch
+  - name: GermanyWestCentral
+    clusters:
+    - name: speech1b-a10-gwc
+      config: speech1b-ame-germanywestcentral-v10
+      type: batch
+  - name: SouthAfricaNorth
+    clusters:
+    - name: speech1b-a10-san
+      config: speech1b-ame-southafricanorth-v10
+      type: batch
+  - name: JIOIndiaCentral
+    clusters:
+    - name: speech1b-a10-jinc
+      config: speech1b-ame-jioindiacentral-v10
+      type: batch
+- stage: Stage5_0
+  regions:
+  - name: CanadaCentral
+    clusters:
+    - name: speech1b-a10-cac
+      config: speech1b-ame-canadacentral-v10
+      type: batch
+  - name: CentralUS
+    clusters:
+    - name: speech1b-a10-usc
+      config: speech1b-ame-centralus-v10
+      type: batch
+  - name: EastUS
+    clusters:
+    - name: speech1b-a10-use
+      config: speech1b-ame-eastus-v10
+      type: batch
+  - name: JapanEast
+    clusters:
+    - name: speech1b-a10-jpe
+      config: speech1b-ame-japaneast-v10
+      type: batch
+- stage: Stage5_1
+  regions:
+  - name: KoreaCentral
+    clusters:
+    - name: speech1b-a10-kc
+      config: speech1b-ame-koreacentral-v10
+      type: batch
+  - name: NorwayEast
+    clusters:
+    - name: speech1b-a10-noe
+      config: speech1b-ame-norwayeast-v10
+      type: batch+aoaiwhisper
+  - name: SouthEastAsia
+    clusters:
+    - name: speech1b-a10-ase
+      config: speech1b-ame-southeastasia-v10
+      type: batch
+  - name: SwitzerlandNorth
+    clusters:
+    - name: speech1b-a10-swn
+      config: speech1b-ame-switzerlandnorth-v10
+      type: batch+aoaiwhisper
+  - name: SwedenCentral
+    clusters:
+    - name: speech1b-a10-sec2
+      config: speech1b-ame-swedencentral-v10
+      type: batch+aoaiwhisper+aoaitts
+- stage: Stage5_2
+  regions:
+  - name: JIOIndiaWest
+    clusters:
+    - name: speech1b-a10-jinw
+      config: speech1b-ame-jioindiawest-v10
+      type: batch
+  - name: WestUS2
+    clusters:
+    - name: speech1b-a10-usw2
+      config: speech1b-ame-westus2-v10
+      type: batch
+  - name: WestUS3
+    clusters:
+    - name: speech1b-a10-usw3
+      config: speech1b-ame-westus3-v10
+      type: batch+aoaitts
+  - name: SouthCentralUS
+    clusters:
+    - name: speech1b-a10-ussc
+      config: speech1b-ame-southcentralus-v10
+      type: batch
+  - name: QatarCentral
+    clusters:
+    - name: speech1b-a10-qac
+      config: speech1b-ame-qatarcentral-v10
+      type: batch
+- stage: Stage5_3
+  regions:
+  - name: CanadaEast
+    clusters:
+    - name: speech1b-a10-cae
+      config: speech1b-ame-canadaeast-v10
+      type: batch
+  - name: ItalyNorth
+    clusters:
+    - name: speech1b-a10-itn2
+      config: speech1b-ame-italynorth-v10
+      type: batch
+  - name: UKWest
+    clusters:
+    - name: speech1b-a10-ukw
+      config: speech1b-ame-ukwest-v10
+      type: batch
+- stage: Sovereign_Stage1
+  regions:
+  - name: Arizona
+    clusters:
+    - name: speech1b-p10-az
+      config: speech1b-prod-arizona-v10
+      type: batch
+      cloud: AzureUSGovernment
+  - name: ChinaNorth2
+    clusters:
+    - name: speech1b-p10-chn2
+      config: speech1b-prod-chinanorth2-v10
+      cloud: AzureChinaCloud
+      type: batch
+- stage: Sovereign_Stage2
+  regions:
+  - name: Virginia
+    clusters:
+    - name: speech1b-p10-va
+      config: speech1b-prod-virginia-v10
+      type: batch
+      cloud: AzureUSGovernment
+  - name: ChinaNorth3
+    clusters:
+    - name: speech1b-p10-chn3
+      config: speech1b-prod-chinanorth3-v10
+      type: batch
+      cloud: AzureChinaCloud
+  - name: ChinaEast2
+    clusters:
+    - name: speech1b-p10-che2
+      config: speech1b-prod-chinaeast2-v10
+      cloud: AzureChinaCloud
+      type: batch
