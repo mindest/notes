@@ -4,11 +4,16 @@ import yaml
 import os
 from process_regions import filter_regions_by_short_name
 
+try:
+    from ctypes import windll
+    windll.shcore.SetProcessDpiAwareness(1)
+except (ImportError, AttributeError):
+    pass
+
 class RegionFilterApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Region Filter")
-        self.geometry("800x600")
 
         self.data = None
         self.input_file_path = ""
