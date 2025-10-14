@@ -1,0 +1,31 @@
+{
+  "last_audio_file": "C:/Users/linmin/OneDrive - Microsoft/Desktop/IcM/0.misc/filler.mp3",
+  "font_family": "Consolas",
+  "font_size": 10,
+  "rg_region_map": {
+    "speech1b-test-prod": [
+      "australiaeast",
+      "centralindia",
+      "eastus",
+      "eastus2",
+      "eastus2euap",
+      "francecentral",
+      "japaneast",
+      "northcentralus",
+      "northeurope",
+      "norwayeast",
+      "southeastasia",
+      "swedencentral",
+      "uksouth",
+      "westcentralus",
+      "westeurope",
+      "westus2"
+    ]
+  },
+  "locale_history": [
+    "ja-JP",
+    "zh-CN",
+    "en-US, ja-JP",
+    "en-US"
+  ]
+}
