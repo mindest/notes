@@ -27,7 +27,7 @@ class CurlApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Speech-to-Text cURL Request Sender")
-        self.geometry("800x700")
+        self.geometry("800x1200")
 
         # --- Configuration ---
         self.config_file = os.path.join(os.path.dirname(__file__), "curl_gui_config.json")
@@ -42,7 +42,7 @@ class CurlApp(tk.Tk):
         self.create_widgets()
         self.toggle_diarization_fields() # Set initial state for diarization fields
         self._toggle_custom_model_fields() # Set initial state for custom model fields
-        self._toggle_enhanced_mode_fields() # Set initial state for enhanced mode fields
+        self._toggle_api_version_fields() # Set initial state for enhanced mode based on API version
         self.load_config()
         self.update_key() # Set initial key
         self._check_keyring_backend()
@@ -81,6 +81,7 @@ class CurlApp(tk.Tk):
         self.api_version_var = tk.StringVar(value=self.api_versions[0])
         self.api_version_menu = ttk.Combobox(config_frame, textvariable=self.api_version_var, values=self.api_versions, state="readonly")
         self.api_version_menu.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        self.api_version_menu.bind("<<ComboboxSelected>>", self._toggle_api_version_fields)
 
         # Subscription Key
         ttk.Label(config_frame, text="Subscription Key:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
@@ -259,11 +260,16 @@ class CurlApp(tk.Tk):
         tokens = lex(json_string, JsonLexer())
         for token_type, token_value in tokens:
             self.output_text.insert(tk.END, token_value, (str(token_type),))
-
     def _set_widget_state_recursively(self, widget, state):
         """Recursively set the state of a widget and all its children."""
         try:
-            widget.configure(state=state)
+            # For Comboboxes, 'normal' makes them editable. If we are enabling
+            # them, we should respect their intended 'readonly' state.
+            if isinstance(widget, ttk.Combobox) and state == 'normal':
+                # This assumes comboboxes are either 'readonly' or 'disabled'
+                widget.configure(state='readonly')
+            else:
+                widget.configure(state=state)
         except tk.TclError:
             # This widget doesn't have a 'state' option (e.g., a Frame)
             pass
@@ -365,6 +371,19 @@ class CurlApp(tk.Tk):
     def _toggle_enhanced_mode_fields(self):
         state = 'normal' if self.use_enhanced_mode_var.get() else 'disabled'
         self._set_widget_state_recursively(self.enhanced_mode_frame, state)
+
+    def _toggle_api_version_fields(self, event=None):
+        """Enable/disable Enhanced Mode based on the selected API version."""
+        api_version = self.api_version_var.get()
+        if api_version == "2024-11-15":
+            # This version does not support enhanced mode
+            self.use_enhanced_mode_check.config(state='disabled')
+            self.use_enhanced_mode_var.set(False)
+        else:
+            # Assume future versions support it
+            self.use_enhanced_mode_check.config(state='normal')
+        # Update the fields based on the new state
+        self._toggle_enhanced_mode_fields()
 
     def load_config(self):
         if os.path.exists(self.config_file):
