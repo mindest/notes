@@ -420,6 +420,8 @@ class CurlApp(tk.Tk):
             self.locale_history.insert(0, current_locales)
             # Keep only the last 10 entries
             self.locale_history = self.locale_history[:10]
+            # Immediately update the combobox in the GUI
+            self.locale_combobox['values'] = self.locale_history
 
         # Update the values we manage
         config["last_audio_file"] = self.audio_file_var.get()
@@ -446,6 +448,7 @@ class CurlApp(tk.Tk):
         return path
 
     def send_request(self):
+        self.save_config() # Save history and other settings immediately
         self.output_text.delete("1.0", tk.END)
 
         if requests is None:
