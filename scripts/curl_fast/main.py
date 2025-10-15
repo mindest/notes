@@ -107,29 +107,35 @@ class CurlApp(tk.Tk):
         # --- Definition Frame ---
         self.definition_frame = ttk.LabelFrame(main_frame, text="Definition")
         self.definition_frame.pack(fill="x", pady=5)
+        self.definition_frame.grid_columnconfigure(0, weight=1)
         self.definition_frame.grid_columnconfigure(1, weight=1)
 
+        # --- Left Column ---
+        left_col_frame = ttk.Frame(self.definition_frame)
+        left_col_frame.grid(row=0, column=0, sticky="new")
+        left_col_frame.grid_columnconfigure(1, weight=1)
+
         # Locales
-        ttk.Label(self.definition_frame, text="Locales:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        ttk.Label(left_col_frame, text="Locales:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.locale_var = tk.StringVar()
-        self.locale_combobox = ttk.Combobox(self.definition_frame, textvariable=self.locale_var)
+        self.locale_combobox = ttk.Combobox(left_col_frame, textvariable=self.locale_var)
         self.locale_combobox.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
         # Diarization Enabled
         self.diarization_enabled_var = tk.BooleanVar(value=False)
-        self.diarization_check = ttk.Checkbutton(self.definition_frame, text="Enable Diarization", variable=self.diarization_enabled_var, command=self.toggle_diarization_fields)
+        self.diarization_check = ttk.Checkbutton(left_col_frame, text="Enable Diarization", variable=self.diarization_enabled_var, command=self.toggle_diarization_fields)
         self.diarization_check.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="w")
 
         # Max Speakers
-        self.max_speakers_label = ttk.Label(self.definition_frame, text="Max Speakers:")
+        self.max_speakers_label = ttk.Label(left_col_frame, text="Max Speakers:")
         self.max_speakers_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.max_speakers_var = tk.IntVar(value=2)
-        self.max_speakers_spinbox = ttk.Spinbox(self.definition_frame, from_=1, to=10, textvariable=self.max_speakers_var, width=10)
+        self.max_speakers_spinbox = ttk.Spinbox(left_col_frame, from_=1, to=10, textvariable=self.max_speakers_var, width=10)
         self.max_speakers_spinbox.grid(row=2, column=1, padx=5, pady=5, sticky="w")
 
         # Channels
-        ttk.Label(self.definition_frame, text="Channels:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
-        channel_frame = ttk.Frame(self.definition_frame)
+        ttk.Label(left_col_frame, text="Channels:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        channel_frame = ttk.Frame(left_col_frame)
         channel_frame.grid(row=3, column=1, padx=5, pady=5, sticky="w")
         self.channel_0_var = tk.BooleanVar(value=True) # Default to [0]
         self.channel_1_var = tk.BooleanVar(value=False)
@@ -141,41 +147,46 @@ class CurlApp(tk.Tk):
         # Custom Properties
         self.postprocessing_dump_var = tk.BooleanVar(value=False)
         self.postprocessing_dump_check = ttk.Checkbutton(
-            self.definition_frame,
+            left_col_frame,
             text="Enable DPP Data Dump",
             variable=self.postprocessing_dump_var
         )
         self.postprocessing_dump_check.grid(row=4, column=0, columnspan=2, padx=5, pady=5, sticky="w")
 
+        # --- Right Column ---
+        right_col_frame = ttk.Frame(self.definition_frame)
+        right_col_frame.grid(row=0, column=1, sticky="new")
+        right_col_frame.grid_columnconfigure(0, weight=1) # Make the column expandable
+
         # Custom Model
         self.use_custom_model_var = tk.BooleanVar(value=False)
         self.use_custom_model_check = ttk.Checkbutton(
-            self.definition_frame,
+            right_col_frame,
             text="Use Custom Model",
             variable=self.use_custom_model_var,
             command=self._toggle_custom_model_fields
         )
-        self.use_custom_model_check.grid(row=5, column=0, columnspan=2, padx=5, pady=5, sticky="w")
+        self.use_custom_model_check.grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="w")
 
-        self.custom_model_frame = ttk.Frame(self.definition_frame)
-        self.custom_model_frame.grid(row=6, column=0, columnspan=2, sticky="ew")
+        self.custom_model_frame = ttk.Frame(right_col_frame)
+        self.custom_model_frame.grid(row=1, column=0, columnspan=2, sticky="ew")
         self.custom_model_frame.grid_columnconfigure(1, weight=1)
-        ttk.Label(self.custom_model_frame, text="Model Definition (JSON):").grid(row=0, column=0, padx=5, pady=5, sticky="nw")
-        self.custom_model_text = tk.Text(self.custom_model_frame, height=4, width=40, font=self.default_font)
+        ttk.Label(self.custom_model_frame, text="Model (JSON):").grid(row=0, column=0, padx=5, pady=5, sticky="nw")
+        self.custom_model_text = tk.Text(self.custom_model_frame, height=4, width=30, font=self.default_font)
         self.custom_model_text.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
         # Enhanced Mode
         self.use_enhanced_mode_var = tk.BooleanVar(value=False)
         self.use_enhanced_mode_check = ttk.Checkbutton(
-            self.definition_frame,
+            right_col_frame,
             text="Enable Enhanced Mode",
             variable=self.use_enhanced_mode_var,
             command=self._toggle_enhanced_mode_fields
         )
-        self.use_enhanced_mode_check.grid(row=7, column=0, columnspan=2, padx=5, pady=5, sticky="w")
+        self.use_enhanced_mode_check.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="w")
 
-        self.enhanced_mode_frame = ttk.Frame(self.definition_frame)
-        self.enhanced_mode_frame.grid(row=8, column=0, columnspan=2, sticky="ew")
+        self.enhanced_mode_frame = ttk.Frame(right_col_frame)
+        self.enhanced_mode_frame.grid(row=3, column=0, columnspan=2, sticky="ew")
         self.enhanced_mode_frame.grid_columnconfigure(1, weight=1)
         ttk.Label(self.enhanced_mode_frame, text="Task:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.enhanced_mode_task_var = tk.StringVar(value="transcribe")
@@ -249,22 +260,30 @@ class CurlApp(tk.Tk):
         for token_type, token_value in tokens:
             self.output_text.insert(tk.END, token_value, (str(token_type),))
 
+    def _set_widget_state_recursively(self, widget, state):
+        """Recursively set the state of a widget and all its children."""
+        try:
+            widget.configure(state=state)
+        except tk.TclError:
+            # This widget doesn't have a 'state' option (e.g., a Frame)
+            pass
+        for child in widget.winfo_children():
+            self._set_widget_state_recursively(child, state)
+
     def _toggle_function_fields(self, event=None):
         selected_function = self.function_var.get()
-        if selected_function == "locales":
-            # Disable audio and definition frames
-            for child in self.audio_file_frame.winfo_children():
-                child.configure(state='disabled')
-            for child in self.definition_frame.winfo_children():
-                child.configure(state='disabled')
-        else: # transcribe
-            # Enable audio and definition frames
-            for child in self.audio_file_frame.winfo_children():
-                child.configure(state='normal')
-            for child in self.definition_frame.winfo_children():
-                child.configure(state='normal')
-            # Re-apply diarization state
+        is_transcribe = selected_function == "transcribe"
+        state = 'normal' if is_transcribe else 'disabled'
+
+        # Recursively enable/disable all widgets in the relevant frames
+        self._set_widget_state_recursively(self.audio_file_frame, state)
+        self._set_widget_state_recursively(self.definition_frame, state)
+
+        if is_transcribe:
+            # If enabling, we need to re-apply the specific states of conditional fields
             self.toggle_diarization_fields()
+            self._toggle_custom_model_fields()
+            self._toggle_enhanced_mode_fields()
 
     def change_font(self, font_family):
         self.output_font.config(family=font_family)
@@ -340,16 +359,12 @@ class CurlApp(tk.Tk):
         self.max_speakers_spinbox.config(state=state)
 
     def _toggle_custom_model_fields(self):
-        if self.use_custom_model_var.get():
-            self.custom_model_frame.grid()
-        else:
-            self.custom_model_frame.grid_remove()
+        state = 'normal' if self.use_custom_model_var.get() else 'disabled'
+        self._set_widget_state_recursively(self.custom_model_frame, state)
 
     def _toggle_enhanced_mode_fields(self):
-        if self.use_enhanced_mode_var.get():
-            self.enhanced_mode_frame.grid()
-        else:
-            self.enhanced_mode_frame.grid_remove()
+        state = 'normal' if self.use_enhanced_mode_var.get() else 'disabled'
+        self._set_widget_state_recursively(self.enhanced_mode_frame, state)
 
     def load_config(self):
         if os.path.exists(self.config_file):
