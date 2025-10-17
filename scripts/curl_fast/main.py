@@ -289,7 +289,7 @@ class CurlApp(tk.Tk):
             # If enabling, we need to re-apply the specific states of conditional fields
             self.toggle_diarization_fields()
             self._toggle_custom_model_fields()
-            self._toggle_enhanced_mode_fields()
+            self._toggle_api_version_fields() # This will handle the enhanced mode fields correctly
 
     def change_font(self, font_family):
         self.output_font.config(family=font_family)
