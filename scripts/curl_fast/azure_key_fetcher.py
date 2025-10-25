@@ -2,6 +2,7 @@ import subprocess
 import json
 import sys
 import keyring
+from keyring.errors import KeyringError, PasswordDeleteError
 import argparse
 import os
 
@@ -58,6 +59,27 @@ def update_keys_and_config(resource_group):
         print(f"\nAn unexpected error occurred: {e}", file=sys.stderr)
         sys.exit(1)
 
+def delete_keys(region_names):
+    """
+    Deletes stored keys for the provided Azure regions from the keyring.
+    """
+    if not region_names:
+        print("No region names provided to delete.", file=sys.stderr)
+        sys.exit(1)
+
+    print("Deleting keys from secure keyring...")
+    for region in region_names:
+        region = region.strip()
+        if not region:
+            continue
+        try:
+            keyring.delete_password(SERVICE_NAME, region)
+            print(f"  - Deleted key for region: '{region}'")
+        except PasswordDeleteError:
+            print(f"  - Warning: No key stored for region '{region}'.")
+        except KeyringError as e:
+            print(f"  - Error: Failed to delete key for region '{region}'. Details: {e}", file=sys.stderr)
+
 def _update_config_file(resource_group, regions):
     """Helper to read, update, and write the JSON config file."""
     config = {}
@@ -96,16 +118,35 @@ def _handle_azure_cli_error(e, resource_group):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Fetch Azure Speech keys, store them securely, and update the local region config file."
+        description="Manage Azure Speech keys: fetch/update stored keys or delete existing ones from the keyring."
     )
-    parser.add_argument("-g", "--resource-group", required=True, help="The Azure resource group to process.")
+    parser.add_argument(
+        "-g",
+        "--resource-group",
+        help="The Azure resource group to process when fetching and storing keys."
+    )
+    parser.add_argument(
+        "-d",
+        "--delete",
+        help="Comma-separated list of regions whose stored keys should be deleted from the keyring."
+    )
     args = parser.parse_args()
 
     if not keyring.get_keyring():
         print("Warning: No recommended backend found for 'keyring'. Keys may be stored in plaintext.", file=sys.stderr)
 
-    update_keys_and_config(args.resource_group)
-    print("\nProcess finished.")
+    if args.delete:
+        regions_to_delete = [region.strip() for region in args.delete.split(",") if region.strip()]
+        if not regions_to_delete:
+            print("Error: No valid regions provided for deletion.", file=sys.stderr)
+            sys.exit(1)
+        delete_keys(regions_to_delete)
+        print("\nDeletion finished.")
+    else:
+        if not args.resource_group:
+            parser.error("the following arguments are required when not deleting keys: -g/--resource-group")
+        update_keys_and_config(args.resource_group)
+        print("\nProcess finished.")
 
 if __name__ == "__main__":
     main()
