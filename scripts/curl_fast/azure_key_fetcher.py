@@ -10,17 +10,23 @@ import os
 SERVICE_NAME = "curl_gui_app"
 # Define the config file path relative to this script's location
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "curl_gui_config.json")
+DEFAULT_RESOURCE_GROUP = "speech1b-test-prod"
+DEFAULT_SUBSCRIPTION_ID = "03ec5728-957f-4af3-9499-5456bc37a20c"
 
-def update_keys_and_config(resource_group):
+def update_keys_and_config(resource_group, subscription=None):
     """
     Fetches all speech service accounts from a resource group, updates the
     local config file with their regions, and stores their keys securely.
+    Optionally scopes Azure CLI queries to a specific subscription.
     """
     print(f"Processing resource group: '{resource_group}'...")
+    if subscription:
+        print(f"  - Using subscription: '{subscription}'")
+    subscription_clause = f" --subscription {subscription}" if subscription else ""
     try:
         # 1. Get all speech accounts from Azure
         print("  - Querying Azure for speech service accounts...")
-        accounts = _get_speech_accounts(resource_group)
+        accounts = _get_speech_accounts(resource_group, subscription_clause)
         if not accounts:
             print("  - Status: No Speech service accounts found in this resource group.")
             return
@@ -39,8 +45,8 @@ def update_keys_and_config(resource_group):
             location = account['Location']
 
             keys_cmd = (
-                f"az cognitiveservices account keys list -n {account_name} -g {resource_group} "
-                f"--query \"{{key1:key1}}\" -o json"
+                f"az cognitiveservices account keys list -n {account_name} -g {resource_group}"
+                f"{subscription_clause} --query \"{{key1:key1}}\" -o json"
             )
             keys_process = subprocess.run(keys_cmd, capture_output=True, text=True, shell=True, check=True)
             keys = json.loads(keys_process.stdout)
@@ -98,10 +104,11 @@ def _update_config_file(resource_group, regions):
     with open(CONFIG_FILE, 'w') as f:
         json.dump(config, f, indent=2)
 
-def _get_speech_accounts(resource_group):
+def _get_speech_accounts(resource_group, subscription_clause=""):
     """Helper function to query Azure for speech accounts."""
     list_cmd = (
-        f"az cognitiveservices account list --resource-group {resource_group} "
+        f"az cognitiveservices account list --resource-group {resource_group}"
+        f"{subscription_clause} "
         f"--query \"[?kind=='SpeechServices'].{{Name:name, Location:location}}\" -o json"
     )
     process = subprocess.run(list_cmd, capture_output=True, text=True, shell=True, check=True)
@@ -123,7 +130,8 @@ def main():
     parser.add_argument(
         "-g",
         "--resource-group",
-        help="The Azure resource group to process when fetching and storing keys."
+        default=DEFAULT_RESOURCE_GROUP,
+        help="The Azure resource group to process when fetching and storing keys. Defaults to %(default)s."
     )
     parser.add_argument(
         "-d",
@@ -143,9 +151,9 @@ def main():
         delete_keys(regions_to_delete)
         print("\nDeletion finished.")
     else:
-        if not args.resource_group:
-            parser.error("the following arguments are required when not deleting keys: -g/--resource-group")
-        update_keys_and_config(args.resource_group)
+        resource_group = args.resource_group or DEFAULT_RESOURCE_GROUP
+        subscription_id = DEFAULT_SUBSCRIPTION_ID if resource_group == DEFAULT_RESOURCE_GROUP else None
+        update_keys_and_config(resource_group, subscription_id)
         print("\nProcess finished.")
 
 if __name__ == "__main__":
