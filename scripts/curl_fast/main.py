@@ -263,11 +263,18 @@ class CurlApp(tk.Tk):
     def _set_widget_state_recursively(self, widget, state):
         """Recursively set the state of a widget and all its children."""
         try:
-            # For Comboboxes, 'normal' makes them editable. If we are enabling
-            # them, we should respect their intended 'readonly' state.
-            if isinstance(widget, ttk.Combobox) and state == 'normal':
-                # This assumes comboboxes are either 'readonly' or 'disabled'
-                widget.configure(state='readonly')
+            if not hasattr(widget, "_original_state"):
+                try:
+                    widget._original_state = widget.cget("state")
+                except tk.TclError:
+                    widget._original_state = None
+
+            if state == 'normal':
+                original_state = getattr(widget, "_original_state", None)
+                if original_state:
+                    widget.configure(state=original_state)
+                else:
+                    widget.configure(state=state)
             else:
                 widget.configure(state=state)
         except tk.TclError:
