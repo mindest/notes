@@ -531,13 +531,13 @@ class CurlApp(tk.Tk):
         locales_list = [locale.strip() for locale in locales_str.split(',') if locale.strip()]
 
         definition = {
-            "locales": locales_list,
-            "diarization": {
-                "enabled": self.diarization_enabled_var.get()
-            }
+            "locales": locales_list
         }
         if self.diarization_enabled_var.get():
-            definition["diarization"]["maxSpeakers"] = self.max_speakers_var.get()
+            definition["diarization"] = {
+                "enabled": True,
+                "maxSpeakers": self.max_speakers_var.get()
+            }
 
         # Add channels to the definition
         channels = []
