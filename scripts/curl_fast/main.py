@@ -1,11 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import json
+import csv
 import subprocess
 import shlex
 import os
 import sys
 import ctypes
+from datetime import datetime, timezone
 from tkinter import font as tkfont
 try:
     import keyring
@@ -31,6 +33,7 @@ class CurlApp(tk.Tk):
 
         # --- Configuration ---
         self.config_file = os.path.join(os.path.dirname(__file__), "curl_gui_config.json")
+        self.request_log_file = os.path.join(os.path.dirname(__file__), "request_history.csv")
         self.default_font = ("Fira Code", 10)
         self.SERVICE_NAME = "curl_gui_app"
         # This list provides the initial regions for the dropdown.
@@ -507,7 +510,7 @@ class CurlApp(tk.Tk):
             self.output_text.insert(tk.END, f"Request Headers: {json.dumps(masked_headers, indent=2)}\n\n")
 
             response = requests.get(url, headers=headers)
-            self._process_and_display_response(response)
+            self._process_and_display_response(response, "GET", url, None)
 
         except requests.exceptions.RequestException as e:
             messagebox.showerror("Request Error", f"An error occurred while sending the request:\n{e}")
@@ -586,8 +589,12 @@ class CurlApp(tk.Tk):
             'Ocp-Apim-Subscription-Key': self.key_var.get()
         }
 
-        data = {
+        request_data = {
             'definition': json.dumps(definition)
+        }
+        log_form_data = {
+            'definition': definition,
+            'audio_file': audio_path
         }
 
         try:
@@ -603,10 +610,10 @@ class CurlApp(tk.Tk):
 
                 self.output_text.insert(tk.END, f"POST {url}\n")
                 self.output_text.insert(tk.END, f"Request Headers: {json.dumps(masked_headers, indent=2)}\n")
-                self.output_text.insert(tk.END, f"Form Data: {json.dumps(data, indent=2)}\n\n")
+                self.output_text.insert(tk.END, f"Form Data: {json.dumps(request_data, indent=2)}\n\n")
 
-                response = requests.post(url, headers=headers, data=data, files=files)
-                self._process_and_display_response(response)
+                response = requests.post(url, headers=headers, data=request_data, files=files)
+                self._process_and_display_response(response, "POST", url, log_form_data)
 
         except requests.exceptions.RequestException as e:
             messagebox.showerror("Request Error", f"An error occurred while sending the request:\n{e}")
@@ -618,7 +625,7 @@ class CurlApp(tk.Tk):
             messagebox.showerror("An Unexpected Error Occurred", str(e))
             self.output_text.insert(tk.END, f"\n\n--- Python Exception ---\n{e}")
 
-    def _process_and_display_response(self, response):
+    def _process_and_display_response(self, response, method, url, form_data):
         self.output_text.insert(tk.END, f"--- Response (Status: {response.status_code}) ---\n")
 
         # Print response headers
@@ -629,6 +636,7 @@ class CurlApp(tk.Tk):
 
         # Check if the response has content
         self.output_text.insert(tk.END, "Response Body:\n")
+        response_body_for_log = response.text if response.text else ""
         if response.text:
             try:
                 # Try to parse and pretty-print JSON
@@ -641,7 +649,51 @@ class CurlApp(tk.Tk):
         else:
             self.output_text.insert(tk.END, "[No content in response]")
 
+        self._log_request(method, url, form_data, response, response_body_for_log)
+
         response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
+
+    def _log_request(self, method, url, form_data, response, response_body):
+        try:
+            directory = os.path.dirname(self.request_log_file)
+            if directory and not os.path.exists(directory):
+                os.makedirs(directory, exist_ok=True)
+
+            log_exists = os.path.exists(self.request_log_file)
+            fieldnames = [
+                "timestamp",
+                "method",
+                "endpoint",
+                "form_data",
+                "apim_request_id",
+                "date_header",
+                "status_code",
+                "response_body"
+            ]
+            if form_data is None:
+                form_data_str = ""
+            else:
+                try:
+                    form_data_str = json.dumps(form_data, ensure_ascii=False)
+                except (TypeError, ValueError):
+                    form_data_str = str(form_data)
+
+            with open(self.request_log_file, 'a', newline='', encoding='utf-8') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                if not log_exists:
+                    writer.writeheader()
+                writer.writerow({
+                    "timestamp": datetime.now(timezone.utc).isoformat(timespec='seconds'),
+                    "method": method,
+                    "endpoint": url,
+                    "form_data": form_data_str,
+                    "apim_request_id": response.headers.get('apim-request-id') or response.headers.get('Apim-Request-Id') or response.headers.get('apim_request_id'),
+                    "date_header": response.headers.get('Date'),
+                    "status_code": response.status_code,
+                    "response_body": response_body
+                })
+        except OSError as e:
+            self.output_text.insert(tk.END, f"\n[Warning] Failed to write request log: {e}\n")
 
 
 if __name__ == "__main__":
